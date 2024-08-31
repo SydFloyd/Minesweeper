@@ -12,7 +12,7 @@ class UIManager:
         self.event_manager = event_manager
         self.buttons = []
 
-        self.root.geometry('400x450')  # Set an initial fixed size; adjust according to your grid size
+        self.root.geometry('460x450')  # Set an initial fixed size; adjust according to your grid size
         self.root.resizable(False, False)  # Disable window resizing from the start
 
         self.create_widgets()
@@ -130,26 +130,18 @@ class UIManager:
     def animate_loss(self, grid):
         """Animate a loss by flashing and gradually fading out the grid."""
 
-        # Lock the window size to prevent resizing during animation
-        self.root.update_idletasks()
-        window_width = self.root.winfo_width()
-        window_height = self.root.winfo_height()
-        self.root.resizable(False, False)  # Disable window resizing
-
         try:
             # Flash the grid red a few times
             for _ in range(3):
-                for r in range(self.grid_manager.rows):
-                    for c in range(self.grid_manager.cols):
-                        button = self.buttons[r][c]
-                        button.config(bg='red')
+                for (r, c) in self.grid_manager.mines:
+                    button = self.buttons[r][c]
+                    button.config(bg='red')
                 self.root.update()
                 self.root.after(100)
 
-                for r in range(self.grid_manager.rows):
-                    for c in range(self.grid_manager.cols):
-                        button = self.buttons[r][c]
-                        button.config(bg='black')
+                for (r, c) in self.grid_manager.mines:
+                    button = self.buttons[r][c]
+                    button.config(bg='black')
                 self.root.update()
                 self.root.after(100)
 
