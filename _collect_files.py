@@ -14,6 +14,12 @@ priority_files = [
     "ui_manager.py"
 ]
 
+ignore_files = [
+    "event_manager.py",
+    "high_score_manager.py",
+    "persistence_manager.py"
+]
+
 def write_file_content(filename, file):
     with open(filename, "r") as f:
         file.write(f"\n# Content of {filename}\n\n")
@@ -36,8 +42,11 @@ def main():
 
         # Write contents of other python files that do not start with "_"
         for filename in sorted(os.listdir(cwd)):
-            if filename.endswith(".py") and not filename.startswith("_") and filename not in priority_files:
+            if filename.split('.') in ['py', 'md'] and not filename.startswith("_") and filename not in priority_files and filename not in ignore_files:
                 write_file_content(filename, file)
+
+        epilogue = f"Files ignored: {ignore_files}"
+        file.write(epilogue)
 
 if __name__ == "__main__":
     main()
