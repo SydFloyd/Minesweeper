@@ -1,0 +1,756 @@
+# Current Working Directory: C:\Users\admin\Documents\dev\games\Minesweeper
+
+# Content of readme.md
+
+# Minesweeper Official Rules
+
+## General Definitions
+
+- **Standard Levels**: There are three standard levels in Minesweeper:
+  - **Beginner**: 8x8 grid with 10 mines.
+  - **Intermediate**: 16x16 grid with 40 mines.
+  - **Expert**: 30x16 grid with 99 mines.
+
+- **Square States**: During the game, a square can be in one of the following states:
+  - **Closed**: At the start of the game, all squares are 'closed'.
+  - **Open**: A square showing either a number or a blank cell is 'open'. Each square can only be opened once. Further clicking on an already open square won't affect the board's status.
+  - **Marked as Mine**: A square that has been marked as a mine won't be affected by further clicks that would normally open squares.
+
+- **Mouse Actions**: The following actions are allowed to play and solve Minesweeper:
+  - **Left Click**: Carried out when the left mouse button is released over a square inside the Minesweeper window. A left click on a closed square opens that square.
+  - **Right Click**: Marks or unmarks a square as a mine.
+  - **Double Click**: Opens all surrounding squares if the number of surrounding mines matches the number on the square.
+
+## Allowed Mouse Button Functions
+
+- **Button States**:
+  - **Depressed**: The state of the button when it is pressed.
+  - **Released**: The state of the button when it is released.
+  - **Null**: The state of the button when it is not being interacted with.
+
+- **LMB (Left Mouse Button)**:
+  - May open a square only if the sequence of states is `Depress & Release` while the state of other buttons is `Null`.
+
+## Interface
+
+- **Clone Interface**:
+  - A clone may process all information that is displayed to the player in an explicit way.
+  - The interface is divided into:
+    - **Field**: Consists of a grid of squares, each with a state (closed, open, marked as mine).
+    - **Rest**: Other elements of the interface that are not part of the field.
+
+## Minesweeper Reveal Algorithm
+
+- The Minesweeper reveal algorithm works as follows:
+  1. **Flagging Mines**:
+     - If the sum of unrevealed neighbors and flagged neighbors equals the value of the cell, flag the unrevealed neighbors.
+  2. **Revealing Squares**:
+     - If the number of flagged neighbors equals the cell value, reveal the remaining unrevealed neighbors.
+  3. **Recursive Reveal**:
+     - If a cell has no adjacent mines, recursively reveal all eight adjacent tiles.
+     - When revealing a square with zero adjacent mines, automatically reveal all adjacent squares.
+  4. **Displaying Numbers**:
+     - If a cell has one or more adjacent mines, display the number of mines next to it.
+
+
+
+# Content of main.py
+
+import tkinter as tk
+from event_manager import EventManager
+from grid_manager import GridManager
+from game_manager import GameManager
+from timer import Timer
+from high_score_manager import HighScoreManager
+from input_handler import InputHandler
+from persistence_manager import PersistenceManager
+from settings_manager import SettingsManager
+from ui_manager import UIManager
+
+def main():
+    # Initialize root window
+    root = tk.Tk()
+    root.title("Minesweeper")
+
+    # Initialize managers
+    event_manager = EventManager()
+    persistence_manager = PersistenceManager()
+    settings_manager = SettingsManager(persistence_manager)
+
+    # Retrieve game settings
+    grid_size = settings_manager.get_setting('grid_size')
+    num_mines = settings_manager.get_setting('num_mines')
+
+    # Initialize game components
+    grid_manager = GridManager(grid_size, num_mines)
+    game_manager = GameManager(grid_manager, event_manager)
+    timer = Timer(event_manager)
+    high_score_manager = HighScoreManager(persistence_manager)
+    input_handler = InputHandler(grid_manager, game_manager, event_manager)
+
+    # Initialize and start UI manager
+    ui_manager = UIManager(root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager)
+
+    # Start the game
+    game_manager.initialize_game()
+
+    # Start the main loop
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
+
+
+
+# Content of game_manager.py
+
+class GameManager:
+    def __init__(self, grid_manager, event_manager):
+        self.grid_manager = grid_manager
+        self.event_manager = event_manager
+        self.game_state = 'idle'  # Possible states: 'idle', 'playing', 'won', 'lost'
+        self.mines_flagged = 0
+        self.cells_revealed = 0
+
+    def initialize_game(self):
+        """Initializes the game by creating the grid and placing mines."""
+        self.grid_manager.create_grid()
+        self.game_state = 'playing'
+        self.mines_flagged = 0
+        self.cells_revealed = 0
+        self.event_manager.dispatch('start_new_game', self.grid_manager.get_grid_size())
+
+    def reveal_cell(self, row, col):
+        """Reveals a cell and updates the game state accordingly."""
+        if self.game_state != 'playing':
+            return
+
+        if self.grid_manager.is_mine(row, col):
+            self.game_state = 'lost'
+            self.event_manager.dispatch('game_lost', self.grid_manager.get_grid())
+        else:
+            previous_revealed = len(self.grid_manager.revealed)
+            self.grid_manager.reveal_cell(row, col)
+            newly_revealed = len(self.grid_manager.revealed) - previous_revealed
+
+            self.cells_revealed += newly_revealed
+            self.event_manager.dispatch('cell_revealed', row, col, newly_revealed)
+            self.check_win_condition()
+
+    def flag_cell(self, row, col):
+        """Flags or unflags a cell as containing a mine."""
+        if self.game_state != 'playing':
+            return
+
+        flag_change = self.grid_manager.flag_cell(row, col)
+        self.mines_flagged += flag_change
+        self.event_manager.dispatch('cell_flagged', row, col, flag_change)
+        self.check_win_condition()
+
+    def check_win_condition(self):
+        """Checks if the player has won the game."""
+        if self.mines_flagged == self.grid_manager.get_num_mines() and \
+           self.cells_revealed == self.grid_manager.get_total_cells() - self.grid_manager.get_num_mines():
+            self.game_state = 'won'
+            self.event_manager.dispatch('game_won', self.grid_manager.get_grid())
+
+    def is_game_over(self):
+        """Returns True if the game is over (either won or lost), False otherwise."""
+        return self.game_state in ['won', 'lost']
+
+    def reset_game(self):
+        """Resets the game to its initial state."""
+        self.initialize_game()
+        self.event_manager.dispatch('game_reset')
+
+
+
+# Content of event_manager.py
+
+class EventManager:
+    def __init__(self):
+        self.listeners = {}
+
+    def subscribe(self, event_name, listener):
+        """Subscribe a listener to an event."""
+        self.listeners.setdefault(event_name, []).append(listener)
+
+    def dispatch(self, event_name, *args, **kwargs):
+        """Dispatch an event to all its listeners."""
+        for listener in self.listeners.get(event_name, []):
+            listener(*args, **kwargs)
+
+
+
+# Content of ui_manager.py
+
+import tkinter as tk
+from tkinter import messagebox
+
+class UIManager:
+    def __init__(self, root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager):
+        self.root = root
+        self.grid_manager = grid_manager
+        self.game_manager = game_manager
+        self.timer = timer
+        self.high_score_manager = high_score_manager
+        self.input_handler = input_handler
+        self.event_manager = event_manager
+        self.buttons = []
+
+        self.root.geometry('400x450')  # Set an initial fixed size; adjust according to your grid size
+        self.root.resizable(False, False)  # Disable window resizing from the start
+
+        self.create_widgets()
+
+        # Subscribe to events
+        self.event_manager.subscribe('grid_updated', self.update_grid)
+        self.event_manager.subscribe('game_won', self.handle_win)
+        self.event_manager.subscribe('game_lost', self.handle_loss)
+        self.event_manager.subscribe('timer_started', self.update_timer)
+        self.event_manager.subscribe('timer_reset', self.reset_timer)
+
+    def create_widgets(self):
+        """Create and layout the game grid and UI components."""
+        # Create a frame for the timer and restart button
+        self.top_frame = tk.Frame(self.root)
+        self.top_frame.pack(side=tk.TOP, pady=5)  # Place it at the top with some padding
+
+        # Add the timer label to the top frame
+        self.timer_label = tk.Label(self.top_frame, text="Time: 0", font=('Helvetica', 16))
+        self.timer_label.pack(side=tk.LEFT, padx=20)
+
+        # Add the restart button to the top frame
+        self.restart_button = tk.Button(self.top_frame, text="Restart", command=self.restart_game)
+        self.restart_button.pack(side=tk.RIGHT, padx=20)
+
+        # Create a frame for the grid
+        self.grid_frame = tk.Frame(self.root)
+        self.grid_frame.pack(pady=10)  # Add some padding for spacing
+
+        # Create the grid buttons
+        self.create_grid_buttons()
+
+    def create_grid_buttons(self):
+        """Create buttons for the game grid based on the grid size."""
+        for r in range(self.grid_manager.rows):
+            row_buttons = []
+            for c in range(self.grid_manager.cols):
+                button = tk.Button(self.grid_frame, width=3, height=1, font=('Helvetica', 16))
+                button.grid(row=r, column=c)
+                button.bind('<Button-1>', lambda event, row=r, col=c: self.handle_left_click(row, col))
+                button.bind('<Button-3>', lambda event, row=r, col=c: self.handle_right_click(row, col))
+                row_buttons.append(button)
+            self.buttons.append(row_buttons)
+
+
+    def update_grid(self, updated_grid):
+        """Update the UI based on the current state of the grid."""
+        for r in range(self.grid_manager.rows):
+            for c in range(self.grid_manager.cols):
+                cell = updated_grid[r][c]
+                button = self.buttons[r][c]
+                
+                if cell['revealed']:
+                    if cell['value'] == 'M':
+                        button.config(text="M", state=tk.DISABLED, relief=tk.SUNKEN, bg='red')
+                    elif cell['value'] > 0:
+                        button.config(text=str(cell['value']), state=tk.DISABLED, relief=tk.SUNKEN)
+                    else:
+                        button.config(text="", state=tk.DISABLED, relief=tk.SUNKEN)
+                elif cell['flagged']:
+                    button.config(text="F", bg='yellow')
+                else:
+                    button.config(text="", state=tk.NORMAL, relief=tk.RAISED, bg='SystemButtonFace')
+
+
+    def update_timer(self):
+        """Update the timer display."""
+        elapsed_time = self.timer.get_elapsed_time()
+        self.timer_label.config(text=f"Time: {int(elapsed_time)}")
+
+    def reset_timer(self):
+        """Reset the timer display."""
+        self.timer_label.config(text="Time: 0")
+
+    def restart_game(self):
+        """Handle the restart game button click."""
+        self.timer.reset()
+        self.game_manager.reset_game()
+        self.update_grid(self.grid_manager.get_grid())
+
+    def handle_left_click(self, row, col):
+        """Handle the left-click event."""
+        self.event_manager.dispatch('left_click', row, col)
+
+    def handle_right_click(self, row, col):
+        """Handle the right-click event."""
+        self.event_manager.dispatch('right_click', row, col)
+
+    def handle_win(self, grid):
+        """Handle game won event."""
+        self.timer.stop()
+        self.animate_win(grid)
+        elapsed_time = self.timer.get_elapsed_time()
+        player_name = "Player"  # This could be customized
+        self.high_score_manager.add_high_score(player_name, score=1, time=elapsed_time)  # Assuming score is always 1 for a win
+        self.show_win_message()
+
+    def animate_win(self, grid):
+        """Animate a win by flashing the grid."""
+        for _ in range(3):  # Flash 3 times
+            for r in range(self.grid_manager.rows):
+                for c in range(self.grid_manager.cols):
+                    button = self.buttons[r][c]
+                    button.config(bg='green')
+            self.root.update()
+            self.root.after(200)
+            for r in range(self.grid_manager.rows):
+                for c in range(self.grid_manager.cols):
+                    button = self.buttons[r][c]
+                    button.config(bg='SystemButtonFace')
+            self.root.update()
+            self.root.after(200)
+
+    def show_win_message(self):
+        """Show the win message after the animation."""
+        messagebox.showinfo("You Win!", "Congratulations! You've won the game!")
+
+    def handle_loss(self, grid):
+        """Handle game lost event."""
+        self.timer.stop()
+        self.animate_loss(grid)
+        self.show_loss_message()
+        self.restart_game()
+
+    def animate_loss(self, grid):
+        """Animate a loss by flashing and gradually fading out the grid."""
+        # Removed the toggling of resizable property
+
+        # Flash the grid red a few times
+        for _ in range(3):
+            for r in range(self.grid_manager.rows):
+                for c in range(self.grid_manager.cols):
+                    button = self.buttons[r][c]
+                    button.config(bg='red')
+            self.root.update()
+            self.root.after(100)
+
+            for r in range(self.grid_manager.rows):
+                for c in range(self.grid_manager.cols):
+                    button = self.buttons[r][c]
+                    button.config(bg='black')
+            self.root.update()
+            self.root.after(100)
+
+        # Vibrate the grid (shift buttons slightly)
+        for _ in range(10):
+            offset = 1 if _ % 2 == 0 else -1
+            self.frame.place(x=offset, y=offset)
+            self.root.update()
+            self.root.after(50)
+        self.frame.place(x=0, y=0)  # Reset position
+
+        # Gradually fade the grid to a dark color
+        for intensity in range(255, 50, -5):
+            color = f'#{intensity:02x}{intensity:02x}{intensity:02x}'
+            for r in range(self.grid_manager.rows):
+                for c in range(self.grid_manager.cols):
+                    button = self.buttons[r][c]
+                    button.config(bg=color)
+            self.root.update()
+            self.root.after(50)
+
+        # Disable all buttons
+        for r in range(self.grid_manager.rows):
+            for c in range(self.grid_manager.cols):
+                button = self.buttons[r][c]
+                button.config(state=tk.DISABLED)
+        self.root.update()
+
+
+    def show_loss_message(self):
+        """Show the loss message after the animation."""
+        messagebox.showinfo("Game Over", "Sorry, you lost the game.")
+
+
+
+# Content of grid_manager.py
+
+import random
+
+class GridManager:
+    def __init__(self, grid_size, num_mines):
+        self.rows, self.cols = grid_size
+        self.num_mines = num_mines
+        self.grid = []
+        self.mines = set()
+        self.revealed = set()  # Track revealed cells
+        self.flagged = set()   # Track flagged cells
+
+    def create_grid(self):
+        """Creates an empty grid, places mines, and calculates adjacent mines."""
+        self.grid = [[{'value': 0, 'revealed': False, 'flagged': False} for _ in range(self.cols)] for _ in range(self.rows)]
+        self.mines = self._place_mines()
+        self._calculate_adjacent_mines()
+
+    def _place_mines(self):
+        """Places mines randomly on the grid."""
+        mines = set()
+        while len(mines) < self.num_mines:
+            row, col = random.randint(0, self.rows - 1), random.randint(0, self.cols - 1)
+            if (row, col) not in mines:
+                mines.add((row, col))
+                self.grid[row][col]['value'] = 'M'
+        return mines
+
+    def _calculate_adjacent_mines(self):
+        """Calculates the number of adjacent mines for each cell."""
+        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.grid[row][col]['value'] != 'M':
+                    mine_count = sum(1 for dr, dc in directions if (row + dr, col + dc) in self.mines)
+                    self.grid[row][col]['value'] = mine_count
+
+    def reveal_cell(self, row, col):
+        """Reveals the cell and connected cells if there are no adjacent mines."""
+        if self.grid[row][col]['revealed']:
+            return
+        if self.grid[row][col]['revealed'] or self.grid[row][col]['flagged']:
+            return
+        self._reveal_recursive(row, col)
+
+    def _reveal_recursive(self, row, col):
+        """Recursively reveals cells with zero adjacent mines."""
+        if not (0 <= row < self.rows and 0 <= col < self.cols):
+            return
+        if self.grid[row][col]['revealed'] or self.grid[row][col]['flagged']:
+            return
+        self.grid[row][col]['revealed'] = True
+        self.revealed.add((row, col))
+
+        if self.grid[row][col]['value'] == 0:
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+            for dr, dc in directions:
+                self._reveal_recursive(row + dr, col + dc)
+
+    def flag_cell(self, row, col):
+        """Flags or unflags a cell."""
+        if self.grid[row][col]['revealed']:
+            return 0
+
+        if self.grid[row][col]['flagged']:
+            self.grid[row][col]['flagged'] = False
+            self.flagged.remove((row, col))
+            return -1
+        else:
+            self.grid[row][col]['flagged'] = True
+            self.flagged.add((row, col))
+            return 1
+
+    def _auto_flag(self):
+        """Automatically flags cells if all unrevealed neighbors match the cell's value."""
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.grid[row][col]['revealed'] and self.grid[row][col]['value'] > 0:
+                    unrevealed_neighbors = self._get_unrevealed_neighbors(row, col)
+                    if len(unrevealed_neighbors) + len(self._get_flagged_neighbors(row, col)) == self.grid[row][col]['value']:
+                        for r, c in unrevealed_neighbors:
+                            self.flag_cell(r, c)
+
+    def _get_unrevealed_neighbors(self, row, col):
+        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        neighbors = [(row + dr, col + dc) for dr, dc in directions]
+        return [(r, c) for r, c in neighbors if 0 <= r < self.rows and 0 <= c < self.cols and not self.grid[r][c]['revealed']]
+
+    def _get_flagged_neighbors(self, row, col):
+        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        neighbors = [(row + dr, col + dc) for dr, dc in directions]
+        return [(r, c) for r, c in neighbors if 0 <= r < self.rows and 0 <= c < self.cols and self.grid[r][c]['flagged']]
+
+    def is_mine(self, row, col):
+        """Checks if the cell at the given position is a mine."""
+        return (row, col) in self.mines
+
+    def get_grid_size(self):
+        """Returns the grid size."""
+        return self.rows, self.cols
+
+    def get_num_mines(self):
+        """Returns the number of mines."""
+        return self.num_mines
+
+    def get_total_cells(self):
+        """Returns the total number of cells."""
+        return self.rows * self.cols
+
+    def get_grid(self):
+        """Returns the current state of the grid."""
+        return self.grid
+
+
+
+# Content of high_score_manager.py
+
+class HighScoreManager:
+    def __init__(self, persistence_manager, max_high_scores=10):
+        self.persistence_manager = persistence_manager
+        self.max_high_scores = max_high_scores
+        self.high_scores_key = 'high_scores'
+        self.high_scores = self.load_high_scores()
+
+    def load_high_scores(self):
+        """Loads the high scores from the persistence manager."""
+        return self.persistence_manager.get_data(self.high_scores_key, [])
+
+    def save_high_scores(self):
+        """Saves the current high scores to the persistence manager."""
+        self.persistence_manager.set_data(self.high_scores_key, self.high_scores)
+
+    def add_high_score(self, name, score, time):
+        """Adds a new high score, sorts the list by score and time, and limits the list size."""
+        new_score = {'name': name, 'score': score, 'time': time}
+        self.high_scores.append(new_score)
+        self.high_scores = sorted(self.high_scores, key=lambda x: (x['score'], x['time']))
+
+        # Limit the number of high scores stored
+        if len(self.high_scores) > self.max_high_scores:
+            self.high_scores = self.high_scores[:self.max_high_scores]
+
+        self.save_high_scores()
+
+    def get_high_scores(self):
+        """Returns the list of high scores."""
+        return self.high_scores
+
+    def clear_high_scores(self):
+        """Clears all high scores."""
+        self.high_scores = []
+        self.save_high_scores()
+
+
+
+# Content of input_handler.py
+
+class InputHandler:
+    def __init__(self, grid_manager, game_manager, event_manager):
+        self.grid_manager = grid_manager
+        self.game_manager = game_manager
+        self.event_manager = event_manager
+        self.timer_started = False  # Track if the timer has started
+
+        # Subscribe to relevant events
+        self.event_manager.subscribe('left_click', self.handle_left_click)
+        self.event_manager.subscribe('right_click', self.handle_right_click)
+
+    def start_timer_if_needed(self):
+        """Start the timer if it hasn't been started yet."""
+        if not self.timer_started:
+            self.event_manager.dispatch('start_timer')
+            self.timer_started = True
+
+    def handle_left_click(self, row, col):
+        """Handles the left-click event for revealing a tile."""
+        if self.game_manager.is_game_over():
+            return
+
+        self.start_timer_if_needed()
+        self.game_manager.reveal_cell(row, col)
+        self.event_manager.dispatch('grid_updated', self.grid_manager.get_grid())
+
+    def handle_right_click(self, row, col):
+        """Handles the right-click event for flagging a tile."""
+        if self.game_manager.is_game_over():
+            return
+
+        self.start_timer_if_needed()
+        self.game_manager.flag_cell(row, col)
+        self.event_manager.dispatch('grid_updated', self.grid_manager.get_grid())
+
+
+
+# Content of persistence_manager.py
+
+import json
+import os
+
+class PersistenceManager:
+    def __init__(self, storage_file='game_data.json'):
+        self.storage_file = storage_file
+        self.data = self._load_data()
+
+    def _load_data(self):
+        """Loads data from the storage file."""
+        if os.path.exists(self.storage_file):
+            try:
+                with open(self.storage_file, 'r') as file:
+                    return json.load(file)
+            except (IOError, json.JSONDecodeError):
+                pass
+        return {}
+
+    def save_data(self):
+        """Saves the current data to the storage file."""
+        try:
+            with open(self.storage_file, 'w') as file:
+                json.dump(self.data, file, indent=4)
+        except IOError as e:
+            print(f"An error occurred while saving data: {e}")
+
+    def get_data(self, key, default=None):
+        """Retrieves the value for the given key from the data."""
+        return self.data.get(key, default)
+
+    def set_data(self, key, value):
+        """Sets the value for the given key in the data and saves it."""
+        self.data[key] = value
+        self.save_data()
+
+    def delete_data(self, key):
+        """Deletes the data associated with the given key and saves the file."""
+        if key in self.data:
+            del self.data[key]
+            self.save_data()
+
+
+
+# Content of settings_manager.py
+
+class SettingsManager:
+    def __init__(self, persistence_manager):
+        self.persistence_manager = persistence_manager
+        self.default_settings = {
+            'grid_size': (10, 10),   # Default grid size (rows, cols)
+            'num_mines': 20,         # Default number of mines
+            'sound_enabled': True,   # Sound on/off
+            'theme': 'light',        # Default theme (light/dark)
+        }
+        self.settings = self._load_settings()
+
+    def _load_settings(self):
+        """Loads settings from the persistence manager or uses default settings."""
+        return {key: self.persistence_manager.get_data(key, default_value)
+                for key, default_value in self.default_settings.items()}
+
+    def save_settings(self):
+        """Saves the current settings to the persistence manager."""
+        for key, value in self.settings.items():
+            self.persistence_manager.set_data(key, value)
+
+    def get_setting(self, key):
+        """Retrieves the value of a specific setting."""
+        return self.settings.get(key, self.default_settings.get(key))
+
+    def set_setting(self, key, value):
+        """Sets a specific setting and saves it."""
+        self.settings[key] = value
+        self.save_settings()
+
+    def reset_to_defaults(self):
+        """Resets all settings to their default values."""
+        self.settings = self.default_settings.copy()
+        self.save_settings()
+
+    def delete_setting(self, key):
+        """Deletes a specific setting and reverts it to default."""
+        if key in self.settings:
+            del self.settings[key]
+            self.persistence_manager.delete_data(key)
+            self.settings[key] = self.default_settings.get(key)
+
+
+
+# Content of timer.py
+
+import time
+
+class Timer:
+    def __init__(self, event_manager):
+        self.start_time = None
+        self.elapsed_time = 0
+        self.running = False
+        self.event_manager = event_manager
+
+        # Subscribe to the event to start the timer
+        self.event_manager.subscribe('start_timer', self.start)
+
+    def start(self):
+        """Starts the timer."""
+        if not self.running:
+            self.start_time = time.time() - self.elapsed_time
+            self.running = True
+            self.event_manager.dispatch('timer_started')
+
+    def stop(self):
+        """Stops the timer and calculates the elapsed time."""
+        if self.running:
+            self.elapsed_time = time.time() - self.start_time
+            self.running = False
+            self.event_manager.dispatch('timer_stopped', self.elapsed_time)
+
+    def reset(self):
+        """Resets the timer to 0 and stops it."""
+        self.start_time = None
+        self.elapsed_time = 0
+        self.running = False
+        self.event_manager.dispatch('timer_reset')
+
+    def get_elapsed_time(self):
+        """Returns the elapsed time in seconds."""
+        if self.running:
+            return time.time() - self.start_time
+        return self.elapsed_time
+
+
+
+# Content of timer_test.py
+
+# Assuming you have a test framework like unittest
+
+import unittest
+from timer import Timer
+from event_manager import EventManager
+import time
+
+class TestTimer(unittest.TestCase):
+    def setUp(self):
+        self.event_manager = EventManager()
+        self.timer = Timer(self.event_manager)
+
+    def test_timer_start(self):
+        self.timer.start()
+        self.assertTrue(self.timer.running)
+        self.assertIsNotNone(self.timer.start_time)
+
+    def test_timer_stop(self):
+        self.timer.start()
+        time.sleep(1)  # Simulate some elapsed time
+        self.timer.stop()
+        self.assertFalse(self.timer.running)
+        self.assertGreater(self.timer.elapsed_time, 0)
+
+    def test_timer_reset(self):
+        self.timer.start()
+        time.sleep(1)
+        self.timer.stop()
+        self.timer.reset()
+        self.assertEqual(self.timer.elapsed_time, 0)
+        self.assertFalse(self.timer.running)
+
+    def test_timer_events(self):
+        events = []
+        self.event_manager.subscribe('timer_started', lambda: events.append('started'))
+        self.event_manager.subscribe('timer_stopped', lambda time: events.append('stopped'))
+        self.event_manager.subscribe('timer_reset', lambda: events.append('reset'))
+
+        self.timer.start()
+        self.timer.stop()
+        self.timer.reset()
+
+        self.assertListEqual(events, ['started', 'stopped', 'reset'])
+
+if __name__ == '__main__':
+    unittest.main()
+
+
