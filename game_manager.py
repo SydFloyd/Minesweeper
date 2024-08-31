@@ -19,7 +19,9 @@ class GameManager:
         if self.game_state != 'playing':
             return
 
-        if self.grid_manager.is_mine(row, col):
+        if self.grid_manager.is_flag(row, col):
+            return
+        elif self.grid_manager.is_mine(row, col):
             self.game_state = 'lost'
             self.event_manager.dispatch('game_lost', self.grid_manager.get_grid())
         else:
