@@ -93,6 +93,9 @@ class GridManager:
     def is_mine(self, row, col):
         """Checks if the cell at the given position is a mine."""
         return (row, col) in self.mines
+    
+    def is_flag(self, row, col):
+        return (row, col) in self.flagged
 
     def get_grid_size(self):
         """Returns the grid size."""
