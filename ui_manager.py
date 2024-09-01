@@ -30,13 +30,20 @@ class UIManager:
         self.frame = tk.Frame(self.root)
         self.frame.pack()
 
-        self.timer_label = tk.Label(self.root, text="Time: 0", font=('Helvetica', 16))
-        self.timer_label.pack()
+        # Create a frame for the timer and restart button
+        self.top_frame = tk.Frame(self.root)
+        self.top_frame.pack()
 
-        self.restart_button = tk.Button(self.root, text="Restart", command=self.restart_game)
-        self.restart_button.pack()
+        # Place the restart button to the left
+        self.restart_button = tk.Button(self.top_frame, text="Restart", command=self.restart_game)
+        self.restart_button.grid(row=0, column=0, padx=5)
+
+        # Place the timer to the right of the restart button
+        self.timer_label = tk.Label(self.top_frame, text="Time: 0", font=('Helvetica', 16))
+        self.timer_label.grid(row=0, column=1, padx=5)
 
         self.create_grid_buttons()
+
 
     def create_grid_buttons(self):
         """Create buttons for the game grid based on the grid size."""

@@ -221,13 +221,20 @@ class UIManager:
         self.frame = tk.Frame(self.root)
         self.frame.pack()
 
-        self.timer_label = tk.Label(self.root, text="Time: 0", font=('Helvetica', 16))
-        self.timer_label.pack()
+        # Create a frame for the timer and restart button
+        self.top_frame = tk.Frame(self.root)
+        self.top_frame.pack()
 
-        self.restart_button = tk.Button(self.root, text="Restart", command=self.restart_game)
-        self.restart_button.pack()
+        # Place the restart button to the left
+        self.restart_button = tk.Button(self.top_frame, text="Restart", command=self.restart_game)
+        self.restart_button.grid(row=0, column=0, padx=5)
+
+        # Place the timer to the right of the restart button
+        self.timer_label = tk.Label(self.top_frame, text="Time: 0", font=('Helvetica', 16))
+        self.timer_label.grid(row=0, column=1, padx=5)
 
         self.create_grid_buttons()
+
 
     def create_grid_buttons(self):
         """Create buttons for the game grid based on the grid size."""
@@ -317,6 +324,7 @@ class UIManager:
         self.timer.stop()
         self.animate_loss(grid)
         self.show_loss_message()
+        self.root.after(10)
         self.restart_game()
 
     def animate_loss(self, grid):
@@ -337,13 +345,14 @@ class UIManager:
                 self.root.update()
                 self.root.after(100)
 
-            # Vibrate the grid (shift buttons slightly)
-            for _ in range(10):
-                offset = 1 if _ % 2 == 0 else -1
-                self.frame.place(x=offset, y=offset)
-                self.root.update()
-                self.root.after(50)
-            self.frame.place(x=0, y=0)  # Reset position
+            ## Super cool but not good to mix place grid and pack :/
+            # # Vibrate the grid (shift buttons slightly)
+            # for _ in range(10):
+            #     offset = 1 if _ % 2 == 0 else -1
+            #     self.frame.place(x=offset, y=offset)
+            #     self.root.update()
+            #     self.root.after(50)
+            # self.frame.place(x=0, y=0)  # Reset position
 
             # Gradually fade the grid to a dark color
             for intensity in range(255, 50, -5):
@@ -371,4 +380,4 @@ class UIManager:
         messagebox.showinfo("Game Over", "Sorry, you lost the game.")
 
 
-Files excluded from printout: ['event_manager.py', 'high_score_manager.py', 'persistence_manager.py']
+Files excluded from printout: ['event_manager.py', 'persistence_manager.py']
