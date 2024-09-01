@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 class UIManager:
-    def __init__(self, root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager):
+    def __init__(self, root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager, window_size):
         self.root = root
         self.grid_manager = grid_manager
         self.game_manager = game_manager
@@ -12,7 +12,7 @@ class UIManager:
         self.event_manager = event_manager
         self.buttons = []
 
-        self.root.geometry('460x475')  # Set an initial fixed size; adjust according to your grid size
+        self.root.geometry(window_size)  # Set an initial fixed size; adjust according to your grid size
         # self.root.resizable(False, False)  # Disable window resizing from the start
 
         self.create_widgets()
@@ -23,6 +23,7 @@ class UIManager:
         self.event_manager.subscribe('game_lost', self.handle_loss)
         self.event_manager.subscribe('timer_started', self.update_timer)
         self.event_manager.subscribe('timer_reset', self.reset_timer)
+        self.event_manager.subscribe('timer_updated', self.update_timer)
 
     def create_widgets(self):
         """Create and layout the game grid and UI components."""

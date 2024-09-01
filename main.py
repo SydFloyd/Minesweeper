@@ -15,13 +15,14 @@ def main():
     root.title("Minesweeper")
 
     # Initialize managers
-    event_manager = EventManager()
+    event_manager = EventManager(root)
     persistence_manager = PersistenceManager()
     settings_manager = SettingsManager(persistence_manager)
 
     # Retrieve game settings
     grid_size = settings_manager.get_setting('grid_size')
     num_mines = settings_manager.get_setting('num_mines')
+    window_size = settings_manager.get_setting('window_size')
 
     # Initialize game components
     grid_manager = GridManager(grid_size, num_mines)
@@ -31,10 +32,11 @@ def main():
     input_handler = InputHandler(grid_manager, game_manager, event_manager)
 
     # Initialize and start UI manager
-    ui_manager = UIManager(root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager)
+    ui_manager = UIManager(root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager, window_size)
 
     # Start the game
     game_manager.initialize_game()
+    timer.start()
 
     # Start the main loop
     root.mainloop()

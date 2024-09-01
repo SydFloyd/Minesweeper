@@ -1,6 +1,7 @@
 class EventManager:
-    def __init__(self):
+    def __init__(self, root):
         self.listeners = {}
+        self.root = root
 
     def subscribe(self, event_name, listener):
         """Subscribe a listener to an event."""

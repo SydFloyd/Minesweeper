@@ -6,6 +6,7 @@ class SettingsManager:
             'num_mines': 20,         # Default number of mines
             'sound_enabled': True,   # Sound on/off
             'theme': 'light',        # Default theme (light/dark)
+            'window_size': '460x475'
         }
         self.settings = self._load_settings()
 
