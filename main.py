@@ -10,6 +10,12 @@ from settings_manager import SettingsManager
 from ui_manager import UIManager
 
 def main():
+    settings_manager = SettingsManager()
+
+    # Level selection
+    selected_level = tk.simpledialog.askstring("Select Leve", "Choose a level (Easy/E, Medium/M, Hard/H)", initialvalue='M')
+    settings_manager.set_active_level(selected_level.title() or "Medium")
+
     # Initialize root window
     root = tk.Tk()
     root.title("Minesweeper")
@@ -17,7 +23,6 @@ def main():
     # Initialize managers
     event_manager = EventManager(root)
     persistence_manager = PersistenceManager()
-    settings_manager = SettingsManager(persistence_manager)
 
     # Retrieve game settings
     grid_size = settings_manager.get_setting('grid_size')
@@ -32,7 +37,7 @@ def main():
     input_handler = InputHandler(grid_manager, game_manager, event_manager)
 
     # Initialize and start UI manager
-    ui_manager = UIManager(root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager, window_size)
+    ui_manager = UIManager(root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager, settings_manager)
 
     # Start the game
     game_manager.initialize_game()
