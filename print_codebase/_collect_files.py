@@ -1,11 +1,11 @@
 import os
 
 # Specify the output file
-output_file = "merged_code.txt"
+output_file = "print_codebase/merged_code.txt"
 
 # List of files to write first in the specified order
 priority_files = [
-    "readme.md",
+    # "readme.md",
     "main.py",
     "game_manager.py",
     "input_handler.py"
@@ -15,8 +15,9 @@ priority_files = [
 ]
 
 ignore_files = [
+    "readme.md",
     "event_manager.py",
-    "high_score_manager.py",
+    # "high_score_manager.py",
     "persistence_manager.py"
 ]
 
