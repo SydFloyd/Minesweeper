@@ -5,6 +5,7 @@ class GameManager:
         self.game_state = 'idle'  # Possible states: 'idle', 'playing', 'won', 'lost'
         self.mines_flagged = 0
         self.cells_revealed = 0
+        self.first_click = True
 
     def initialize_game(self):
         """Initializes the game by creating the grid and placing mines."""
@@ -12,6 +13,7 @@ class GameManager:
         self.game_state = 'playing'
         self.mines_flagged = 0
         self.cells_revealed = 0
+        self.first_click = True
         self.event_manager.dispatch('start_new_game', self.grid_manager.get_grid_size())
 
     def reveal_cell(self, row, col):
@@ -19,6 +21,12 @@ class GameManager:
         if self.game_state != 'playing':
             return
 
+        if self.first_click:
+            self.grid_manager.fill_grid((row, col))
+            self.first_click = False
+            self.reveal_cell(row, col)
+            return
+        
         if self.grid_manager.is_flag(row, col):
             return
         elif self.grid_manager.is_mine(row, col):
@@ -45,8 +53,7 @@ class GameManager:
 
     def check_win_condition(self):
         """Checks if the player has won the game."""
-        if self.mines_flagged == self.grid_manager.get_num_mines() and \
-           self.cells_revealed == self.grid_manager.get_total_cells() - self.grid_manager.get_num_mines():
+        if self.cells_revealed == self.grid_manager.get_total_cells() - self.grid_manager.get_num_mines():
             self.game_state = 'won'
             self.event_manager.dispatch('game_won', self.grid_manager.get_grid())
 

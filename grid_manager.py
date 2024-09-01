@@ -12,15 +12,17 @@ class GridManager:
     def create_grid(self):
         """Creates an empty grid, places mines, and calculates adjacent mines."""
         self.grid = [[{'value': 0, 'revealed': False, 'flagged': False} for _ in range(self.cols)] for _ in range(self.rows)]
-        self.mines = self._place_mines()
+    
+    def fill_grid(self, first_click):
+        self.mines = self._place_mines_avoiding_first_click(first_click)
         self._calculate_adjacent_mines()
 
-    def _place_mines(self):
+    def _place_mines_avoiding_first_click(self, first_click):
         """Places mines randomly on the grid."""
         mines = set()
         while len(mines) < self.num_mines:
             row, col = random.randint(0, self.rows - 1), random.randint(0, self.cols - 1)
-            if (row, col) not in mines:
+            if (row, col) not in mines and (row, col) != first_click:
                 mines.add((row, col))
                 self.grid[row][col]['value'] = 'M'
         return mines
