@@ -1,10 +1,13 @@
 class SettingsManager:
     def __init__(self, persistence_manager):
+        # - **Standard Levels**: There are three standard levels in Minesweeper:
+        # - **Beginner**: 8x8 grid with 10 mines.
+        # - **Intermediate**: 16x16 grid with 40 mines.
+        # - **Expert**: 30x16 grid with 99 mines.
         self.persistence_manager = persistence_manager
         self.default_settings = {
             'grid_size': (10, 10),   # Default grid size (rows, cols)
             'num_mines': 20,         # Default number of mines
-            'sound_enabled': True,   # Sound on/off
             'theme': 'light',        # Default theme (light/dark)
             'window_size': '460x450'
         }
