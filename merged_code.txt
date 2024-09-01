@@ -367,4 +367,4 @@ class UIManager:
         messagebox.showinfo("Game Over", "Sorry, you lost the game.")
 
 
-Files ignored: ['event_manager.py', 'high_score_manager.py', 'persistence_manager.py']
+Files excluded from printout: ['event_manager.py', 'high_score_manager.py', 'persistence_manager.py']
