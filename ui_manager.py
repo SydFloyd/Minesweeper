@@ -126,6 +126,7 @@ class UIManager:
         self.timer.stop()
         self.animate_loss(grid)
         self.show_loss_message()
+        self.root.after(10)
         self.restart_game()
 
     def animate_loss(self, grid):
@@ -146,13 +147,14 @@ class UIManager:
                 self.root.update()
                 self.root.after(100)
 
-            # Vibrate the grid (shift buttons slightly)
-            for _ in range(10):
-                offset = 1 if _ % 2 == 0 else -1
-                self.frame.place(x=offset, y=offset)
-                self.root.update()
-                self.root.after(50)
-            self.frame.place(x=0, y=0)  # Reset position
+            ## Super cool but not good to mix place grid and pack :/
+            # # Vibrate the grid (shift buttons slightly)
+            # for _ in range(10):
+            #     offset = 1 if _ % 2 == 0 else -1
+            #     self.frame.place(x=offset, y=offset)
+            #     self.root.update()
+            #     self.root.after(50)
+            # self.frame.place(x=0, y=0)  # Reset position
 
             # Gradually fade the grid to a dark color
             for intensity in range(255, 50, -5):
