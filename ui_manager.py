@@ -12,8 +12,8 @@ class UIManager:
         self.event_manager = event_manager
         self.buttons = []
 
-        self.root.geometry('460x450')  # Set an initial fixed size; adjust according to your grid size
-        self.root.resizable(False, False)  # Disable window resizing from the start
+        self.root.geometry('460x475')  # Set an initial fixed size; adjust according to your grid size
+        # self.root.resizable(False, False)  # Disable window resizing from the start
 
         self.create_widgets()
 
