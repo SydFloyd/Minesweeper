@@ -28,8 +28,13 @@ class HighScoreManager:
     def get_high_scores(self):
         """Returns the list of high scores."""
         return self.high_scores
+    
+    def get_high_score_time(self):
+        """Returns the highest score."""
+        return max(score['time'] for score in self.high_scores)
 
     def clear_high_scores(self):
         """Clears all high scores."""
         self.high_scores = []
         self.save_high_scores()
+

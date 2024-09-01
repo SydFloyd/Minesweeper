@@ -123,12 +123,15 @@ class UIManager:
         self.timer.stop()
         self.animate_win(grid)
         elapsed_time = self.timer.get_elapsed_time()
-        player_name = simpledialog.askstring("Player Name", "Congratulations! Enter your name:")
+        if elapsed_time < self.high_score_manager.get_high_score_time():
+            message = "New High Score!!"
+        else:
+            message = "Congratulations!"
+        player_name = simpledialog.askstring("You Win!", f"{message}\nEnter your name:")
         if player_name:  # If the user provided a name
             self.high_score_manager.add_high_score(player_name, time=elapsed_time)
         else:  # Default name if no input is given
             self.high_score_manager.add_high_score("A", time=elapsed_time)
-        self.show_win_message()
 
     def animate_win(self, grid):
         """Animate a win by flashing the grid."""
@@ -144,10 +147,6 @@ class UIManager:
             self.root.update()
             self.root.after(200)
 
-    def show_win_message(self):
-        """Show the win message after the animation."""
-        messagebox.showinfo("You Win!", "Congratulations! You've won the game!")
-
     def handle_loss(self, grid):
         """Handle game lost event."""
         self.timer.stop()
@@ -158,41 +157,36 @@ class UIManager:
 
     def animate_loss(self, grid):
         """Animate a loss by flashing and gradually fading out the grid."""
-        try:
-            # Flash the grid red a few times
-            for _ in range(3):
-                for (r, c) in self.grid_manager.mines:
-                    button = self.buttons[r][c]
-                    button.config(bg='red')
-                self.root.update()
-                self.root.after(100)
+        # Flash the grid red a few times
+        for _ in range(3):
+            for (r, c) in self.grid_manager.mines:
+                button = self.buttons[r][c]
+                button.config(bg='red')
+            self.root.update()
+            self.root.after(100)
 
-                for (r, c) in self.grid_manager.mines:
-                    button = self.buttons[r][c]
-                    button.config(bg='black')
-                self.root.update()
-                self.root.after(100)
+            for (r, c) in self.grid_manager.mines:
+                button = self.buttons[r][c]
+                button.config(bg='black')
+            self.root.update()
+            self.root.after(100)
 
-            # Gradually fade the grid to a dark color
-            for intensity in range(255, 50, -5):
-                color = f'#{intensity:02x}{intensity:02x}{intensity:02x}'
-                for r in range(self.grid_manager.rows):
-                    for c in range(self.grid_manager.cols):
-                        button = self.buttons[r][c]
-                        button.config(bg=color)
-                self.root.update()
-                self.root.after(50)
-
-            # Disable all buttons
+        # Gradually fade the grid to a dark color
+        for intensity in range(255, 50, -5):
+            color = f'#{intensity:02x}{intensity:02x}{intensity:02x}'
             for r in range(self.grid_manager.rows):
                 for c in range(self.grid_manager.cols):
                     button = self.buttons[r][c]
-                    button.config(state=tk.DISABLED)
+                    button.config(bg=color)
             self.root.update()
+            self.root.after(50)
 
-        finally:
-            # Restore window resizing capability after the animation
-            self.root.resizable(True, True)  # Re-enable window resizing
+        # Disable all buttons
+        for r in range(self.grid_manager.rows):
+            for c in range(self.grid_manager.cols):
+                button = self.buttons[r][c]
+                button.config(state=tk.DISABLED)
+        self.root.update()
 
     def show_loss_message(self):
         """Show the loss message after the animation."""
