@@ -45,7 +45,7 @@ def main():
             if filename.split('.') in ['py', 'md'] and not filename.startswith("_") and filename not in priority_files and filename not in ignore_files:
                 write_file_content(filename, file)
 
-        epilogue = f"Files ignored: {ignore_files}"
+        epilogue = f"Files excluded from printout: {ignore_files}"
         file.write(epilogue)
 
 if __name__ == "__main__":
