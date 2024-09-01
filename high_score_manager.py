@@ -13,11 +13,11 @@ class HighScoreManager:
         """Saves the current high scores to the persistence manager."""
         self.persistence_manager.set_data(self.high_scores_key, self.high_scores)
 
-    def add_high_score(self, name, score, time):
+    def add_high_score(self, name, time):
         """Adds a new high score, sorts the list by score and time, and limits the list size."""
-        new_score = {'name': name, 'score': score, 'time': time}
+        new_score = {'name': name, 'time': time}
         self.high_scores.append(new_score)
-        self.high_scores = sorted(self.high_scores, key=lambda x: (x['score'], x['time']))
+        self.high_scores = sorted(self.high_scores, key=lambda x: x['time'])
 
         # Limit the number of high scores stored
         if len(self.high_scores) > self.max_high_scores:

@@ -32,8 +32,8 @@ class Timer:
     def get_elapsed_time(self):
         """Get the total elapsed time since the timer started."""
         if self.running:
-            return self.elapsed_time + (time.time() - self.start_time)
-        return self.elapsed_time
+            return round(self.elapsed_time + (time.time() - self.start_time), 2)
+        return round(self.elapsed_time, 2)
 
     def _update_timer(self):
         """Private method to update the timer every second."""

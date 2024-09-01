@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, Menu
+from tkinter import messagebox, Menu, simpledialog
 
 class UIManager:
     def __init__(self, root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager, window_size):
@@ -71,7 +71,7 @@ class UIManager:
     def show_high_scores(self):
         """Display a dialog showing the high scores."""
         high_scores = self.high_score_manager.get_high_scores()
-        scores_text = "\n".join([f"{score['player']}: {score['time']}s" for score in high_scores])
+        scores_text = "\n".join([f"{score['name']}: {score['time']}s" for score in high_scores])
         if not scores_text:
             scores_text = "No high scores yet."
         messagebox.showinfo("High Scores", scores_text)
@@ -123,23 +123,24 @@ class UIManager:
         self.timer.stop()
         self.animate_win(grid)
         elapsed_time = self.timer.get_elapsed_time()
-        player_name = "Player"  # This could be customized
-        self.high_score_manager.add_high_score(player_name, score=1, time=elapsed_time)  # Assuming score is always 1 for a win
+        player_name = simpledialog.askstring("Player Name", "Congratulations! Enter your name:")
+        if player_name:  # If the user provided a name
+            self.high_score_manager.add_high_score(player_name, time=elapsed_time)
+        else:  # Default name if no input is given
+            self.high_score_manager.add_high_score("A", time=elapsed_time)
         self.show_win_message()
 
     def animate_win(self, grid):
         """Animate a win by flashing the grid."""
         for _ in range(3):  # Flash 3 times
-            for r in range(self.grid_manager.rows):
-                for c in range(self.grid_manager.cols):
-                    button = self.buttons[r][c]
-                    button.config(bg='green')
+            for r, c in self.grid_manager.mines:
+                button = self.buttons[r][c]
+                button.config(bg='green')
             self.root.update()
             self.root.after(200)
-            for r in range(self.grid_manager.rows):
-                for c in range(self.grid_manager.cols):
-                    button = self.buttons[r][c]
-                    button.config(bg='SystemButtonFace')
+            for r, c in self.grid_manager.mines:
+                button = self.buttons[r][c]
+                button.config(bg='SystemButtonFace')
             self.root.update()
             self.root.after(200)
 
@@ -157,7 +158,6 @@ class UIManager:
 
     def animate_loss(self, grid):
         """Animate a loss by flashing and gradually fading out the grid."""
-
         try:
             # Flash the grid red a few times
             for _ in range(3):
@@ -172,15 +172,6 @@ class UIManager:
                     button.config(bg='black')
                 self.root.update()
                 self.root.after(100)
-
-            ## Super cool but not good to mix place grid and pack :/
-            # # Vibrate the grid (shift buttons slightly)
-            # for _ in range(10):
-            #     offset = 1 if _ % 2 == 0 else -1
-            #     self.frame.place(x=offset, y=offset)
-            #     self.root.update()
-            #     self.root.after(50)
-            # self.frame.place(x=0, y=0)  # Reset position
 
             # Gradually fade the grid to a dark color
             for intensity in range(255, 50, -5):
