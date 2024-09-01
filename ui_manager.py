@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, Menu
 
 class UIManager:
     def __init__(self, root, grid_manager, game_manager, timer, high_score_manager, input_handler, event_manager, window_size):
@@ -27,6 +27,8 @@ class UIManager:
 
     def create_widgets(self):
         """Create and layout the game grid and UI components."""
+        self.create_menu()  # Create the menu bar
+
         self.frame = tk.Frame(self.root)
         self.frame.pack()
 
@@ -44,6 +46,15 @@ class UIManager:
 
         self.create_grid_buttons()
 
+    def create_menu(self):
+        """Create a menu bar with a high scores option."""
+        menu_bar = Menu(self.root)
+        self.root.config(menu=menu_bar)
+
+        # Add a menu item for high scores
+        game_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Menu", menu=game_menu)
+        game_menu.add_command(label="High Scores", command=self.show_high_scores)
 
     def create_grid_buttons(self):
         """Create buttons for the game grid based on the grid size."""
@@ -56,6 +67,14 @@ class UIManager:
                 button.bind('<Button-3>', lambda event, row=r, col=c: self.handle_right_click(row, col))
                 row_buttons.append(button)
             self.buttons.append(row_buttons)
+
+    def show_high_scores(self):
+        """Display a dialog showing the high scores."""
+        high_scores = self.high_score_manager.get_high_scores()
+        scores_text = "\n".join([f"{score['player']}: {score['time']}s" for score in high_scores])
+        if not scores_text:
+            scores_text = "No high scores yet."
+        messagebox.showinfo("High Scores", scores_text)
 
     def update_grid(self, updated_grid):
         """Update the UI based on the current state of the grid."""

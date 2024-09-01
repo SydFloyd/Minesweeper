@@ -16,7 +16,7 @@ priority_files = [
 
 ignore_files = [
     "event_manager.py",
-    # "high_score_manager.py",
+    "high_score_manager.py",
     "persistence_manager.py"
 ]
 
